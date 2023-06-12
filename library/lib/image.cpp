@@ -149,18 +149,18 @@ void Image::layout(NVGcontext* vg, Style* style, FontStash* stash)
             this->imageY = (this->origViewHeight - this->imageHeight) / 2.0F;
             break;
         case ImageScaleType::FIT:
-            if (viewAspectRatio >= imageAspectRatio)
-            {
+            //if (viewAspectRatio >= imageAspectRatio)
+            //{
                 this->imageHeight = this->getHeight();
                 this->imageWidth  = this->imageHeight * imageAspectRatio;
                 this->imageX      = (this->origViewWidth - this->imageWidth) / 2.0F;
-            }
-            else
+            //}
+            /*else
             {
                 this->imageWidth  = this->getWidth();
                 this->imageHeight = this->imageWidth * imageAspectRatio;
                 this->imageY      = (this->origViewHeight - this->imageHeight) / 2.0F;
-            }
+            }*/
             break;
         case ImageScaleType::CROP:
             if (viewAspectRatio < imageAspectRatio)
