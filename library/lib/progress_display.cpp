@@ -46,6 +46,21 @@ void ProgressDisplay::setProgress(int current, int max)
     this->label->setText(labelText);
 }
 
+void ProgressDisplay::setProgress(float current, float max)
+{
+    if (current > max)
+        return;
+
+    this->progressPercentage = ((current * 100) / max);
+
+    if (!this->label)
+        return;
+
+    std::string labelText = std::to_string((unsigned)this->progressPercentage);
+    labelText += "%";
+    this->label->setText(labelText);
+}
+
 void ProgressDisplay::layout(NVGcontext* vg, Style* style, FontStash* stash)
 {
     if (this->label)

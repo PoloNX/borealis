@@ -33,6 +33,7 @@ enum ProgressDisplayFlags
 };
 
 inline constexpr ProgressDisplayFlags DEFAULT_PROGRESS_DISPLAY_FLAGS = (ProgressDisplayFlags)(ProgressDisplayFlags::SPINNER | ProgressDisplayFlags::PERCENTAGE);
+inline constexpr ProgressDisplayFlags PERCENTAGE_ONLY_PROGRESS_DISPLAY_FLAGS = (ProgressDisplayFlags)(ProgressDisplayFlags::PERCENTAGE);
 
 // A progress bar with an optional spinner and percentage text.
 class ProgressDisplay : public View
@@ -47,6 +48,7 @@ class ProgressDisplay : public View
     void willDisappear(bool resetState = false) override;
 
     void setProgress(int current, int max);
+    void setProgress(float current, float max);
 
   private:
     float progressPercentage = 0.0f;
