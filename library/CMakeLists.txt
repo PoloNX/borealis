@@ -259,6 +259,9 @@ set_target_properties(borealis PROPERTIES
 )
 set_source_files_properties(${BOREALIS_PATH}/lib/platforms/desktop/desktop_darwin.mm PROPERTIES
         SKIP_UNITY_BUILD_INCLUSION ON)
+
+add_compile_options($<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-volatile>)
+
 target_include_directories(borealis PUBLIC ${BOREALIS_INCLUDE})
 target_link_libraries(borealis fmt tweeny yogacore ${BRLS_PLATFORM_LIBS})
 target_compile_options(borealis PUBLIC
@@ -268,6 +271,3 @@ target_compile_options(borealis PUBLIC
         -fdata-sections
         ${BRLS_PLATFORM_OPTION}
         )
-if (NOT MSVC)
-    target_compile_options(borealis PUBLIC -Wno-volatile)
-endif()
