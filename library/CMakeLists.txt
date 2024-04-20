@@ -268,3 +268,6 @@ target_compile_options(borealis PUBLIC
         -fdata-sections
         ${BRLS_PLATFORM_OPTION}
         )
+if (NOT MSVC)
+    target_compile_options(borealis PUBLIC -Wno-volatile)
+endif()
