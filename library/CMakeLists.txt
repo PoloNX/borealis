@@ -256,7 +256,6 @@ message(STATUS "borealis driver ${BOREALIS_DRIVER}")
 add_library(borealis STATIC ${BOREALIS_SRC})
 set_target_properties(borealis PROPERTIES
         CXX_STANDARD 17
-        UNITY_BUILD ${BRLS_UNITY_BUILD}
 )
 set_source_files_properties(${BOREALIS_PATH}/lib/platforms/desktop/desktop_darwin.mm PROPERTIES
         SKIP_UNITY_BUILD_INCLUSION ON)
