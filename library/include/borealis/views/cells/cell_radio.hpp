@@ -42,6 +42,7 @@ class RadioCell : public RecyclerCell
     bool getSelected();
 
     BRLS_BIND(Label, title, "brls/rediocell/title");
+    BRLS_BIND(Label, subtitle, "brls/rediocell/subtitle");
     BRLS_BIND(CheckBox, checkbox, "brls/rediocell/checkbox");
 
     static View* create();

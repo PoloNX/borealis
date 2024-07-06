@@ -28,14 +28,29 @@ const std::string radioCellXML = R"xml(
         paddingBottom="12.5"
         alignItems="center">
 
-        <brls:Label
-            id="brls/rediocell/title"
+        <brls:Box
             width="auto"
             height="auto"
-            grow="1"
-            fontSize="@style/brls/sidebar/item_font_size"
+            focusable="false"
+            axis="column"
             marginLeft="@style/brls/listitem/descriptionIndent"
-            marginRight="@style/brls/listitem/descriptionIndent" />
+            marginRight="@style/brls/listitem/descriptionIndent">
+
+            <brls:Label
+                id="brls/rediocell/title"
+                width="auto"
+                height="auto"
+                grow="1"
+                fontSize="@style/brls/sidebar/item_font_size"/>
+
+            <brls:Label
+                id="brls/rediocell/subtitle"
+                width="auto"
+                height="auto"
+                grow="1"
+                fontSize="12.0"/>
+
+        </brls:Box>
 
         <brls:CheckBox
             id="brls/rediocell/checkbox"
