@@ -24,6 +24,7 @@ limitations under the License.
 #include <borealis/views/dialog.hpp>
 #include <borealis/views/edit_text_dialog.hpp>
 #include <borealis/views/label.hpp>
+#include <libretro-common/encodings/utf.h>
 #include <codecvt>
 #include <cstring>
 #include <iostream>
@@ -134,7 +135,7 @@ void GLFWImeManager::char_callback(GLFWwindow* window, unsigned int codepoint)
 {
     if (!showIME)
         return;
-    if (cursor < 0 || cursor > textBuffer.size())
+    if (cursor < 0 || cursor > (int)textBuffer.size())
         cursor = textBuffer.size();
     textBuffer.insert(textBuffer.begin() + cursor, (wchar_t)codepoint);
     cursor++;
@@ -171,8 +172,12 @@ void GLFWImeManager::openInputDialog(std::function<void(std::string)> cb, std::s
     dialog->setCursor(cursor);
     dialog->setHintText(subText);
     dialog->setHeaderText(headerText);
-    dialog->setCountText("0/" + std::to_string(maxStringLength));
+    dialog->setCountText(std::to_string(utf8len(initialText.data())) + "/" + std::to_string(maxStringLength));
+ #if defined(BOREALIS_USE_D3D11)
+    float scale = Application::windowScale;
+ #else
     float scale = Application::windowScale / Application::getPlatform()->getVideoContext()->getScaleFactor();
+#endif
     dialog->getLayoutEvent()->subscribe([this, scale](Point p)
         { glfwSetPreeditCursorRectangle(window, p.x * scale, p.y * scale, 1, 1); });
 
@@ -204,7 +209,7 @@ void GLFWImeManager::openInputDialog(std::function<void(std::string)> cb, std::s
                     return ;
                 }
                 isEditing = true;
-                if (cursor < 0 || cursor > textBuffer.size()) cursor = textBuffer.size();
+                if (cursor < 0 || cursor > (int)textBuffer.size()) cursor = textBuffer.size();
                 auto left = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(textBuffer.substr(0, cursor));
                 auto right = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(textBuffer.substr(cursor, textBuffer.size()));
                 dialog->setText(left + preeditTextBuffer + right);
@@ -215,8 +220,8 @@ void GLFWImeManager::openInputDialog(std::function<void(std::string)> cb, std::s
     dialog->getBackspaceEvent()->subscribe([dialog](...)
         {
             if(textBuffer.empty()) return true;
-            if (cursor < 0 || cursor > textBuffer.size()) cursor = textBuffer.size();
-            if (cursor > 0 && cursor <= textBuffer.size()) {
+            if (cursor < 0 || cursor > (int)textBuffer.size()) cursor = textBuffer.size();
+            if (cursor > 0 && cursor <= (int)textBuffer.size()) {
                 textBuffer.erase(cursor - 1, 1);
                 cursor--;
                 dialog->setCursor(cursor);
@@ -239,7 +244,7 @@ void GLFWImeManager::openInputDialog(std::function<void(std::string)> cb, std::s
         {
             if (isEditing) return true;
             if (cursor >= (int)CursorPosition::START) {
-                if (cursor < textBuffer.size()) {
+                if (cursor < (int)textBuffer.size()) {
                     cursor++;
                     dialog->setCursor(cursor);
                 }

@@ -20,6 +20,17 @@ limitations under the License.
 #include <borealis/views/edit_text_dialog.hpp>
 #include <borealis/core/application.hpp>
 
+#ifdef __PSV__
+extern "C" uint8_t * vita_ime_init_text;
+__attribute__((weak)) uint8_t* vita_ime_init_text = nullptr;
+
+extern "C" uint32_t vita_ime_max_text;
+__attribute__((weak)) uint32_t vita_ime_max_text = 32;
+
+extern "C" uint32_t vita_ime_type;
+__attribute__((weak)) uint32_t vita_ime_type = 0;
+#endif
+
 namespace brls
 {
     SDLImeManager::SDLImeManager(Event<SDL_Event*> *event):
@@ -77,6 +88,10 @@ namespace brls
         std::string initialText) {
         EditTextDialog* dialog = new EditTextDialog();
         this->inputBuffer = initialText;
+#ifdef __PSV__
+        vita_ime_init_text = reinterpret_cast<uint8_t *>(const_cast<char *>(this->inputBuffer.c_str()));
+        vita_ime_max_text = maxStringLength;
+#endif
         auto updateText = [this, dialog, maxStringLength]() {
             std::string text = this->inputBuffer;
             if (this->editingBuffer.size() > 0) {
@@ -124,7 +139,11 @@ namespace brls
         cursor = -1;
         updateText();
         if(!initialText.empty()) updateTextCursor();
+#if defined(BOREALIS_USE_D3D11)
+        float scale = Application::windowScale;
+ #else
         float scale = Application::windowScale / Application::getPlatform()->getVideoContext()->getScaleFactor();
+#endif
         // 更新输入法条位置
         dialog->getLayoutEvent()->subscribe([scale](Point p) {
 #ifndef PS4
@@ -218,6 +237,9 @@ namespace brls
         std::string subText, int maxStringLength, std::string initialText,
         int kbdDisableBitmask)
     {
+#ifdef __PSV__
+        vita_ime_type = 0;
+#endif
         this->openInputDialog([f](const std::string& text)
             { f(text); },
             headerText, subText, maxStringLength, initialText);
@@ -229,6 +251,9 @@ namespace brls
         std::string leftButton, std::string rightButton,
         int kbdDisableBitmask)
     {
+#ifdef __PSV__
+        vita_ime_type = 2;
+#endif
         this->openInputDialog([f](const std::string& text) {
             if(text.empty()) return ;
             try
