@@ -8,6 +8,7 @@ include(CMakeDependentOption)
 # Platform
 option(PLATFORM_DESKTOP "build for desktop (Linux, macOS, Windows)" OFF)
 option(PLATFORM_IOS "build for iOS" OFF)
+option(PLATFORM_TVOS "build for tvOS" OFF)
 option(PLATFORM_ANDROID "build for Android" OFF)
 option(PLATFORM_PSV "build for psv" OFF)
 option(PLATFORM_PS4 "build for ps4" OFF)
@@ -22,6 +23,10 @@ cmake_dependent_option(INSTALL "Install to system." OFF "UNIX;NOT APPLE" OFF)
 
 # PS4 Only
 cmake_dependent_option(LIBJBC "Root access enabled" OFF "PLATFORM_PS4" OFF)
+
+# PSVita Only
+cmake_dependent_option(USE_GXM "Using gxm instead of OpenGL." OFF "PLATFORM_PSV" OFF)
+cmake_dependent_option(USE_VITA_SHARK "Using runtime shader compiler." OFF "USE_GXM" OFF)
 
 # iOS Only (If empty then not sign)
 set(IOS_CODE_SIGN_IDENTITY "" CACHE STRING "The code sign identity to use when building the IPA.")
@@ -59,6 +64,7 @@ option(SIMPLE_HIGHLIGHT "Simple highlight" OFF)
 # https://cmake.org/cmake/help/latest/prop_tgt/UNITY_BUILD.html
 option(BRLS_UNITY_BUILD "Unity build" OFF)
 
+option(BRLS_FONTSTASH_STREAM "fontstash use stream" OFF)
 
 if (NOT DEFINED APP_PLATFORM_INCLUDE)
     set(APP_PLATFORM_INCLUDE)
@@ -74,7 +80,7 @@ endif ()
 
 if (NOT DEFINED APP_PLATFORM_LINK_OPTION)
     set(APP_PLATFORM_LINK_OPTION)
-    if (PLATFORM_SWITCH)
+    if (PLATFORM_SWITCH OR PLATFORM_PSV)
         list(APPEND APP_PLATFORM_LINK_OPTION "-Wl,-Map,borealis.map")
     endif ()
 endif ()

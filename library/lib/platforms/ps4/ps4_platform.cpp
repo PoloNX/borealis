@@ -70,7 +70,7 @@ Ps4Platform::Ps4Platform()
         brls::Logger::error("sceNetCtlInit() failed");
 
     // Dialogs
-    if (sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_MESSAGE_DIALOG) < 0 || sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_IME_DIALOG) < 0)
+    if (sceSysmoduleLoadModule(ORBIS_SYSMODULE_MESSAGE_DIALOG) < 0 || sceSysmoduleLoadModule(ORBIS_SYSMODULE_IME_DIALOG) < 0)
         Logger::error("Load ime dialog module failed");
     if (sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_INTERNAL_COMMON_DIALOG) < 0 || sceCommonDialogInitialize() < 0)
         brls::Logger::error("sceCommonDialogInitialize() failed");
@@ -137,6 +137,11 @@ Ps4Platform::Ps4Platform()
 }
 
 Ps4Platform::~Ps4Platform() = default;
+
+std::string Ps4Platform::getName()
+{
+    return "Ps4";
+}
 
 void Ps4Platform::createWindow(std::string windowTitle, uint32_t windowWidth, uint32_t windowHeight, float windowXPos, float windowYPos)
 {

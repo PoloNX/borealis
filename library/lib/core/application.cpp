@@ -17,8 +17,10 @@
     limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <yoga/YGNode.h>
 #include <yoga/event/event.h>
 
 #include <algorithm>
@@ -78,6 +80,7 @@ bool Application::init()
 
     // Init platform
     Application::platform = Platform::createPlatform();
+    Application::notificationManager = new NotificationManager();
 
     if (!Application::platform)
     {
@@ -376,8 +379,6 @@ void Application::processInput()
     bool repeating                  = false;
     Time cpuTime = getCPUTimeUsec();
 
-    controllerState.buttons[BUTTON_B] |= inputManager->getKeyboardKeyState(BRLS_KBD_KEY_ESCAPE);
-
     for (int i = 0; i < _BUTTON_MAX; i++)
     {
         if (controllerState.buttons[i])
@@ -654,9 +655,8 @@ void Application::frame()
     frameContext.theme      = Application::getTheme();
 
     // Begin frame and clear
-    NVGcolor backgroundColor = frameContext.theme["brls/clear"];
     videoContext->beginFrame();
-    videoContext->clear(backgroundColor);
+    videoContext->clear(Application::getTheme().getColor("brls/clear"));
     float scaleFactor = videoContext->getScaleFactor();
 
     nvgBeginFrame(frameContext.vg, Application::windowWidth, Application::windowHeight, scaleFactor);
@@ -688,6 +688,9 @@ void Application::frame()
     {
         currentFocus->frameHighlight(&frameContext);
     }
+
+    // Notifications
+    Application::notificationManager->frame(&frameContext);
 
     if (isDrawCursor())
     {
@@ -727,6 +730,7 @@ void Application::exit()
 
     exitDoneEvent.fire();
 
+    delete Application::notificationManager;
     delete Application::platform;
 }
 
@@ -764,9 +768,14 @@ void Application::setLimitedFPS(size_t fps)
     Application::limitedFrameTime = fps == 0 ? 0 : 1000000.0f / fps;
 }
 
-void Application::notify(std::string text)
+void Application::setSwapInterval(int interval)
 {
-    // To be implemented
+    Application::platform->getVideoContext()->setSwapInterval(interval);
+}
+
+void Application::notify(const std::string& text)
+{
+    Application::notificationManager->notify(text);
 }
 
 void Application::giveFocus(View* view)
@@ -948,7 +957,7 @@ void Application::addToFreeQueue(View* view)
 {
     if (std::binary_search(deletionPool.cbegin(), deletionPool.cend(), view))
         return;
-    
+
     brls::Logger::verbose("Application::addToFreeQueue {}", view->describe());
 
     Application::deletionPool.push_back(view);
@@ -1061,8 +1070,8 @@ void Application::setWindowSize(int width, int height)
 
     // Rescale UI
     Application::windowScale   = (float)width / (float)ORIGINAL_WINDOW_WIDTH;
-    Application::contentWidth  = ORIGINAL_WINDOW_WIDTH;
-    Application::contentHeight = (unsigned)roundf((float)height / Application::windowScale);
+    Application::contentWidth  = (float)ORIGINAL_WINDOW_WIDTH;
+    Application::contentHeight = std::ceil((float)height / Application::windowScale);
 
     for (Activity* activity : Application::activitiesStack)
         activity->onWindowSizeChanged();
@@ -1077,12 +1086,14 @@ void Application::onWindowResized(int width, int height)
     brls::cancelDelay(iter);
     iter = brls::delay(100, [width, height]()
         {
-            Logger::info("Window size changed to {}x{}, content size: {}x{} factor: {}",
-                width, height, contentWidth, contentHeight, Application::windowScale);
-            brls::Logger::info("scale factor: {}", Application::getPlatform()->getVideoContext()->getScaleFactor());
-
             Application::setWindowSize(width, height);
-            Application::getWindowSizeChangedEvent()->fire(); });
+            Application::getWindowSizeChangedEvent()->fire();
+
+            Logger::info("Window size changed to {}x{}, content size: {}x{} windowScale: {}",
+                width, height, contentWidth, contentHeight, Application::windowScale);
+            brls::Logger::info("scale factor: {}",
+                Application::getPlatform()->getVideoContext()->getScaleFactor());
+        });
 }
 
 void Application::setWindowPosition(int x, int y)

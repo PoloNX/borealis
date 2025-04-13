@@ -35,7 +35,7 @@
 #include <shellapi.h>
 #include <winioctl.h>
 #include <ntddvdeo.h>
-#elif IOS
+#elif IOS || TVOS
 #elif __APPLE__
 #include <IOKit/ps/IOPSKeys.h>
 #include <IOKit/ps/IOPowerSources.h>
@@ -131,7 +131,7 @@ int win32_wlan_quality()
     }
     return quality;
 }
-#elif IOS
+#elif IOS || TVOS
 extern ThemeVariant ios_theme();
 extern uint8_t ios_battery_status();
 extern float ios_battery();
@@ -183,7 +183,7 @@ int darwin_get_powerstate()
     return capacity;
 }
 #elif ANDROID
-#elif __linux__
+#elif defined(__linux__)
 // Thanks to: https://github.com/videolan/vlc/blob/master/modules/misc/inhibit/dbus.c
 enum INHIBIT_TYPE
 {
@@ -191,6 +191,7 @@ enum INHIBIT_TYPE
     FDO_PM, /**< KDE and GNOME <= 2.26 and Xfce */
     MATE, /**< >= 1.0 */
     GNOME, /**< GNOME 2.26..3.4 */
+    NONE,
 };
 
 static const char dbus_service[][40] = {
@@ -223,44 +224,21 @@ static const char dbus_method_uninhibit[][10] = {
 
 static const char dbus_method_inhibit[] = "Inhibit";
 
-static inline INHIBIT_TYPE detectLinuxDesktopEnvironment()
-{
-    const char* currentDesktop = getenv("XDG_CURRENT_DESKTOP");
-    if (currentDesktop)
-    {
-        std::string xdgCurrentDesktop { currentDesktop };
-        // to upper
-        for (auto& i : xdgCurrentDesktop)
-        {
-            if ('a' <= i && i <= 'z')
-            {
-                i -= 32;
-            }
-        }
-        Logger::info("XDG_CURRENT_DESKTOP: {}", xdgCurrentDesktop);
-        if (xdgCurrentDesktop == "GNOME")
-            return GNOME;
-        if (xdgCurrentDesktop == "UBUNTU:GNOME")
-            return GNOME;
-        if (xdgCurrentDesktop == "MATE")
-            return MATE;
-    }
-    if (getenv("GNOME_DESKTOP_SESSION_ID"))
-    {
-        Logger::info("CURRENT_DESKTOP: GNOME");
-        return GNOME;
-    }
-    const char* kdeVersion = getenv("KDE_SESSION_VERSION");
-    if (kdeVersion && atoi(kdeVersion) >= 4)
-    {
-        Logger::info("CURRENT_DESKTOP: KDE {}", kdeVersion);
-        return FDO_SS;
-    }
-    Logger::info("CURRENT_DESKTOP: DEFAULT");
-    return FDO_PM;
-}
+static INHIBIT_TYPE systemType = NONE;
 
-static INHIBIT_TYPE systemType = detectLinuxDesktopEnvironment();
+static inline void probeInhibitor(DBusConnection* conn)
+{
+    for (int i = FDO_SS; i < NONE; ++i)
+    {
+        if (dbus_bus_name_has_owner(conn, dbus_service[i], NULL))
+        {
+            Logger::info("Found inhibitor service: {}", dbus_service[i]);
+            systemType = static_cast<INHIBIT_TYPE>(i);
+            return;
+        }
+    }
+    Logger::error("Failed to find an inhibitor service");
+}
 
 static DBusConnection* connectSessionBus()
 {
@@ -289,6 +267,11 @@ void closeSessionBus(DBusConnection* bus)
 
 uint32_t dbusInhibit(DBusConnection* connection, const std::string& app, const std::string& reason)
 {
+    if (systemType == NONE) {
+        Logger::error("Idle inhibitor not available");
+        return 0;
+    }
+
     DBusMessage* msg = dbus_message_new_method_call(dbus_service[systemType],
         dbus_path[systemType],
         dbus_interface[systemType],
@@ -354,6 +337,11 @@ uint32_t dbusInhibit(DBusConnection* connection, const std::string& app, const s
 
 void dbusUnInhibit(DBusConnection* connection, uint32_t cookie)
 {
+    if (systemType == NONE) {
+        Logger::error("Idle inhibitor not available");
+        return;
+    }
+
     DBusMessage* msg = dbus_message_new_method_call(dbus_service[systemType],
         dbus_path[systemType],
         dbus_interface[systemType],
@@ -393,7 +381,7 @@ DesktopPlatform::DesktopPlatform()
     char* themeEnv = getenv("BOREALIS_THEME");
     if (themeEnv == nullptr)
     {
-#if defined(IOS)
+#if defined(IOS) || defined(TVOS)
         this->themeVariant = ios_theme();
 #elif __APPLE__
         CFPropertyListRef propertyList = CFPreferencesCopyValue(
@@ -441,7 +429,6 @@ DesktopPlatform::DesktopPlatform()
     {
         char* langEnv = getenv("BOREALIS_LANG");
         this->locale  = langEnv ? std::string(langEnv) : LOCALE_DEFAULT;
-        brls::Logger::info("Auto set app locale: {}", this->locale);
     }
     else
     {
@@ -457,11 +444,15 @@ DesktopPlatform::DesktopPlatform()
     // Platform impls
     this->fontLoader = new DesktopFontLoader();
     this->imeManager = new DesktopImeManager();
+
+#if defined(__linux__) && !defined(ANDROID)
+    probeInhibitor(dbus_conn.get());
+#endif
 }
 
 bool DesktopPlatform::canShowBatteryLevel()
 {
-#if defined(IOS)
+#if defined(IOS) || defined(TVOS)
     return ios_battery_status() != 0;
 #elif defined(__APPLE__)
     return darwin_get_powerstate() >= 0;
@@ -477,7 +468,8 @@ bool DesktopPlatform::canShowBatteryLevel()
 
 bool DesktopPlatform::canShowWirelessLevel()
 {
-#if defined(IOS)
+#if defined(IOS) || defined(TVOS)
+    return false;
 #elif defined(__APPLE__)
     return true;
 #elif defined(_WIN32)
@@ -489,7 +481,7 @@ bool DesktopPlatform::canShowWirelessLevel()
 
 int DesktopPlatform::getBatteryLevel()
 {
-#if defined(IOS)
+#if defined(IOS) || defined(TVOS)
     return ios_battery() * 100;
 #elif defined(__APPLE__)
     return darwin_get_powerstate() & 0x7F;
@@ -505,7 +497,7 @@ int DesktopPlatform::getBatteryLevel()
 
 bool DesktopPlatform::isBatteryCharging()
 {
-#if defined(IOS)
+#if defined(IOS) || defined(TVOS)
     return ios_battery_status() == 2;
 #elif defined(__APPLE__)
     return darwin_get_powerstate() & 0x80;
@@ -521,7 +513,8 @@ bool DesktopPlatform::isBatteryCharging()
 
 bool DesktopPlatform::hasWirelessConnection()
 {
-#if defined(IOS)
+#if defined(IOS) || defined(TVOS)
+    return false;
 #elif defined(__APPLE__)
     return darwin_wlan_quality() > 0;
 #elif defined(__WINRT__)
@@ -535,7 +528,8 @@ bool DesktopPlatform::hasWirelessConnection()
 
 int DesktopPlatform::getWirelessLevel()
 {
-#if defined(IOS)
+#if defined(IOS) || defined(TVOS)
+    return 0;
 #elif defined(__APPLE__)
     return darwin_wlan_quality();
 #elif defined(__WINRT__)
@@ -552,7 +546,7 @@ int DesktopPlatform::getWirelessLevel()
 bool DesktopPlatform::hasEthernetConnection()
 {
     bool has_eth = false;
-#if defined(IOS)
+#if defined(IOS) || defined(TVOS)
 #elif defined(__APPLE__)
     SCDynamicStoreRef storeRef = SCDynamicStoreCreate(nullptr, CFSTR("FindCurrentInterface"), nullptr, nullptr);
     CFDictionaryRef globalRef  = (CFDictionaryRef)SCDynamicStoreCopyValue(storeRef, CFSTR("State:/Network/Global/IPv4"));
@@ -632,7 +626,7 @@ void DesktopPlatform::disableScreenDimming(bool disable, const std::string& reas
     if (disable)
     {
 #ifdef ANDROID
-#elif defined(IOS)
+#elif defined(IOS) || defined(TVOS)
 #elif defined(__linux__)
         inhibitCookie = dbusInhibit(dbus_conn.get(), app, reason);
 #elif __APPLE__
@@ -649,7 +643,7 @@ void DesktopPlatform::disableScreenDimming(bool disable, const std::string& reas
     else
     {
 #ifdef ANDROID
-#elif defined(IOS)
+#elif defined(IOS) || defined(TVOS)
 #elif defined(__linux__)
         if (inhibitCookie != 0)
             dbusUnInhibit(dbus_conn.get(), inhibitCookie);
@@ -738,7 +732,7 @@ std::string DesktopPlatform::getIpAddress()
 {
     std::string ipaddr = "-";
 #if defined(ANDROID)
-#elif defined(IOS)
+#elif defined(IOS) || defined(TVOS)
 #elif defined(__APPLE__) || defined(__linux__)
     struct ifaddrs* interfaces = nullptr;
     if (getifaddrs(&interfaces) == 0)
@@ -799,7 +793,7 @@ std::string DesktopPlatform::getIpAddress()
 std::string DesktopPlatform::getDnsServer()
 {
     std::string dnssvr = "-";
-#if defined(IOS)
+#if defined(IOS) || defined(TVOS)
 #elif defined(__APPLE__)
     SCPreferencesRef prefsDNS = SCPreferencesCreate(nullptr, CFSTR("DNSSETTING"), nullptr);
     CFArrayRef services       = SCNetworkServiceCopyAll(prefsDNS);
@@ -871,7 +865,7 @@ std::string DesktopPlatform::exec(const char* cmd)
 {
     std::stringstream ss;
 #if defined(ANDROID)
-#elif defined(IOS)
+#elif defined(IOS) || defined(TVOS)
 #elif defined(__APPLE__) || defined(__linux__)
     FILE* pipe = popen(cmd, "r");
     if (!pipe)
@@ -939,7 +933,7 @@ void DesktopPlatform::openBrowser(std::string url)
 #elif __APPLE__
     std::string cmd = "open \"" + url + "\"";
     system(cmd.c_str());
-#elif __linux__
+#elif defined(__linux__)
     if (isSteamDeck())
     {
         runSteamDeckCommand(fmt::format("steam://openurl/{}\n", url));

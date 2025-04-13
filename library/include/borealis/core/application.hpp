@@ -18,9 +18,6 @@
 
 #pragma once
 
-#include <nanovg.h>
-#include <tinyxml2.h>
-
 #include <borealis/core/activity.hpp>
 #include <borealis/core/audio.hpp>
 #include <borealis/core/font.hpp>
@@ -30,6 +27,7 @@
 #include <borealis/core/style.hpp>
 #include <borealis/core/theme.hpp>
 #include <borealis/core/view.hpp>
+#include <borealis/core/notification_manager.hpp>
 #include <borealis/views/label.hpp>
 #include <deque>
 #include <vector>
@@ -52,12 +50,14 @@ enum class InputType
 };
 
 class DebugLayer;
+class EditTextDialog;
 
 typedef std::function<View*(void)> XMLViewCreator;
 
 class Application
 {
   public:
+    friend class EditTextDialog;
 
     static inline uint32_t ORIGINAL_WINDOW_WIDTH  = 1280;
     static inline uint32_t ORIGINAL_WINDOW_HEIGHT = 720;
@@ -171,7 +171,7 @@ class Application
 
     static int getDefaultFont();
 
-    static void notify(std::string text);
+    static void notify(const std::string& text);
 
     static void onControllerButtonPressed(enum ControllerButton button, bool repeating);
 
@@ -208,7 +208,48 @@ class Application
     static void setFPSStatus(bool enabled);
     static bool getFPSStatus();
     static size_t getFPS();
+
+    /**
+     * Set the FPS limit
+     * @param fps 0 to disable limit
+     */
     static void setLimitedFPS(size_t fps);
+
+    /**
+     * Set the swap interval
+     * Must be called after createWindow. On some platforms, it is impossible to set it back
+     * to 0 after setting it to a non-zero values, so you can use
+     * `VideoContext::swapInterval = 0;` (#include "borealis/core/video.hpp") before creating the window.
+     *
+     * Test results:
+     *
+     * ## Platforms that always vsync (interval: 1):
+     * iOS18/GLES3/SDL
+     * PS4/GLES2/SDL
+     *
+     * ## Platforms that only support enable and disable vsync (interval: 0,1):
+     * Android9/GLES2/SDL
+     * macOS13.0+/GL3.2/GLFW (will fixed to 120fps with vsync enabled, https://github.com/glfw/glfw/pull/2277)
+     * Windows11/GL3.2/GLFW
+     * Linux Wayland/GL3.2/GLFW
+     *
+     * ## Platforms that not support disable vsync (interval: 1,2,3,4):
+     * Windows11/D3D11/GLFW
+     * Switch/DEKO3D
+     *
+     * ## Platforms that support arbitrary values (interval: 0,1,2,3,4):
+     * PsVita/GXM
+     * PsVita/GLES2/SDL
+     * macOS13.0+/GL3.2/SDL
+     * Linux X11/GL3.2/GLFW
+     * Linux X11/GL3.2/SDL
+     * Linux Wayland/GL3.2/SDL
+     * Switch/GL4.3/GLFW
+     * Switch/GL4.3/SDL
+     *
+     * @param interval 0 to disable vsync
+     */
+    static void setSwapInterval(int interval);
 
     /**
      * If the value is set to true, the program will limit FPS to Application::DeactivatedFPS
@@ -318,6 +359,7 @@ class Application
     inline static View* currentFocus = nullptr;
     inline static std::vector<TouchState> currentTouchState;
     inline static MouseState currentMouseState;
+    inline static NotificationManager* notificationManager;
 
     // Return true if input type was changed
     static bool setInputType(InputType type);
