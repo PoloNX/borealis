@@ -45,13 +45,7 @@ class TabFrame : public Box
     {
         this->sidebar->setWidth(width);
     }
-
-    float getSidebarWidth() const
-    {
-        return this->sidebar->getWidth();
-    }
     
-
     static View* create();
 
   private:
