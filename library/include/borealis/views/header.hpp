@@ -31,6 +31,13 @@ class Header : public Box
   public:
     Header();
 
+    void setTitleSize(int size) {
+        this->title->setFontSize(size);
+    }
+
+    void setSubtitleSize(int size) {
+        this->subtitle->setFontSize(size);
+    }
     void setTitle(std::string text);
     void setSubtitle(std::string text);
 
