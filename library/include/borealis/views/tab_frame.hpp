@@ -41,6 +41,11 @@ class TabFrame : public Box
     void clearTabs();
     void addSeparator();
 
+    void setSidebarWidth(int width)
+    {
+        this->sidebar->setWidth(width);
+    }
+    
     static View* create();
 
   private:
