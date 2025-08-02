@@ -496,13 +496,6 @@ void SDLInputManager::updateUnifiedControllerState(ControllerState* state)
     }
 
     // Add keyboard keys on top of gamepad buttons
-    for (size_t i = 2; i < SDL_GAMEPAD_BUTTON_MAX; i++)
-    {
-        size_t brlsButton = SDL_BUTTONS_MAPPING[i];
-        size_t key        = SDL_GAMEPAD_TO_KEYBOARD[i];
-        if (key != SDL_SCANCODE_UNKNOWN)
-            state->buttons[brlsButton] |= getKeyboardKeys((SDL_Scancode)key);
-    }
     if (Application::isSwapInputKeys())
     {
         state->buttons[BUTTON_B] |= getKeyboardKeys(SDL_SCANCODE_KP_ENTER);
@@ -520,6 +513,11 @@ void SDLInputManager::updateUnifiedControllerState(ControllerState* state)
 
     // Android tv remote control
     state->buttons[BUTTON_X] |= getKeyboardKeys(SDL_SCANCODE_MENU);
+
+    state->buttons[BUTTON_UP] |= getKeyboardKeys(SDL_SCANCODE_UP);
+    state->buttons[BUTTON_RIGHT] |= getKeyboardKeys(SDL_SCANCODE_RIGHT);
+    state->buttons[BUTTON_DOWN] |= getKeyboardKeys(SDL_SCANCODE_DOWN);
+    state->buttons[BUTTON_LEFT] |= getKeyboardKeys(SDL_SCANCODE_LEFT);
 
     state->buttons[BUTTON_NAV_UP] |= state->buttons[BUTTON_UP];
     state->buttons[BUTTON_NAV_RIGHT] |= state->buttons[BUTTON_RIGHT];

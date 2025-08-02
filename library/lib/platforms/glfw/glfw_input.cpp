@@ -282,14 +282,6 @@ void GLFWInputManager::updateUnifiedControllerState(ControllerState* state)
     }
 
     // Add keyboard keys on top of gamepad buttons
-    for (size_t i = 2; i < GLFW_GAMEPAD_BUTTON_MAX; i++)
-    {
-        size_t brlsButton = GLFW_BUTTONS_MAPPING[i];
-        size_t key        = GLFW_GAMEPAD_TO_KEYBOARD[i];
-        if (key != GLFW_GAMEPAD_BUTTON_NONE)
-            state->buttons[brlsButton] |= glfwGetKey(this->window, key) != 0;
-    }
-
     if (Application::isSwapInputKeys()) {
         state->buttons[BUTTON_B] |= glfwGetKey(this->window, GLFW_KEY_KP_ENTER) != 0;
         state->buttons[BUTTON_B] |= glfwGetKey(this->window, GLFW_KEY_ENTER) != 0;
@@ -302,6 +294,11 @@ void GLFWInputManager::updateUnifiedControllerState(ControllerState* state)
         state->buttons[BUTTON_B] |= glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
     }
     state->buttons[BUTTON_X] |= (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS);
+
+    state->buttons[BUTTON_UP] |= glfwGetKey(this->window, GLFW_KEY_UP) != 0;
+    state->buttons[BUTTON_RIGHT] |= glfwGetKey(this->window, GLFW_KEY_RIGHT) != 0;
+    state->buttons[BUTTON_DOWN] |= glfwGetKey(this->window, GLFW_KEY_DOWN) != 0;
+    state->buttons[BUTTON_LEFT] |= glfwGetKey(this->window, GLFW_KEY_LEFT) != 0;
 
     state->buttons[BUTTON_NAV_UP] |= state->buttons[BUTTON_UP];
     state->buttons[BUTTON_NAV_RIGHT] |= state->buttons[BUTTON_RIGHT];
