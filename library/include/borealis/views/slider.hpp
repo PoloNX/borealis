@@ -53,7 +53,6 @@ class Slider : public Box
     Rectangle* getPointer() { return pointer; }
 
   private:
-    InputManager* input;
     Rectangle* line;
     Rectangle* lineEmpty;
     Rectangle* pointer;

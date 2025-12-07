@@ -182,7 +182,7 @@ int darwin_get_powerstate()
     CFRelease(blob);
     return capacity;
 }
-#elif ANDROID
+#elif __SDL2__
 #elif defined(__linux__)
 // Thanks to: https://github.com/videolan/vlc/blob/master/modules/misc/inhibit/dbus.c
 enum INHIBIT_TYPE
@@ -445,7 +445,7 @@ DesktopPlatform::DesktopPlatform()
     this->fontLoader = new DesktopFontLoader();
     this->imeManager = new DesktopImeManager();
 
-#if defined(__linux__) && !defined(ANDROID)
+#if defined(__linux__) && !defined(__SDL2__)
     probeInhibitor(dbus_conn.get());
 #endif
 }
@@ -554,6 +554,8 @@ bool DesktopPlatform::hasEthernetConnection()
     if (globalRef)
     {
         CFDictionaryGetValueIfPresent(globalRef, kSCDynamicStorePropNetPrimaryInterface, &primaryIf);
+            if (primaryIf)
+                CFRetain(primaryIf);
         CFRelease(globalRef);
     }
     CFRelease(storeRef);
@@ -577,6 +579,7 @@ bool DesktopPlatform::hasEthernetConnection()
         }
         CFRelease(iflist);
     }
+    CFRelease(primaryIf);
 #elif defined(_WIN32)
     PIP_ADAPTER_ADDRESSES addrs = nullptr;
     ULONG outlen = sizeof(IP_ADAPTER_ADDRESSES), ret = 0, curindex = 0;
@@ -625,8 +628,7 @@ void DesktopPlatform::disableScreenDimming(bool disable, const std::string& reas
 
     if (disable)
     {
-#ifdef ANDROID
-#elif defined(IOS) || defined(TVOS)
+#ifdef __SDL2__
 #elif defined(__linux__)
         inhibitCookie = dbusInhibit(dbus_conn.get(), app, reason);
 #elif __APPLE__
@@ -642,8 +644,7 @@ void DesktopPlatform::disableScreenDimming(bool disable, const std::string& reas
     }
     else
     {
-#ifdef ANDROID
-#elif defined(IOS) || defined(TVOS)
+#ifdef __SDL2__
 #elif defined(__linux__)
         if (inhibitCookie != 0)
             dbusUnInhibit(dbus_conn.get(), inhibitCookie);
